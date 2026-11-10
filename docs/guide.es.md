@@ -15,9 +15,9 @@ Hay que distinguir dos tipos de valores:
 
 ### 1.2 Áreas de machine learning
 
-- **Aprendizaje supervisado**: los datos vienen con la respuesta correcta y el modelo aprende a reproducirla. Es nuestro caso: cada imagen trae la máscara de daños.
-- **Aprendizaje no supervisado**: los datos no traen respuesta y el modelo busca estructura por su cuenta, por ejemplo agrupar ejemplos parecidos.
-- **Aprendizaje por refuerzo**: un agente prueba acciones y aprende de las recompensas que recibe.
+- **Aprendizaje supervisado**: los datos vienen con la respuesta correcta y el modelo aprende a reproducirla. Es nuestro caso: cada imagen trae la máscara de daños. Ejemplos: filtrar correos de spam a partir de correos ya etiquetados, estimar el precio de una casa con ventas pasadas, o detectar neumonía en radiografías con diagnósticos confirmados. La respuesta puede ser una categoría (clasificación) o un número (regresión).
+- **Aprendizaje no supervisado**: los datos no traen respuesta y el modelo busca estructura por su cuenta, por ejemplo agrupar ejemplos parecidos. Ejemplos: segmentar clientes por su comportamiento de compra, agrupar imágenes satelitales por tipo de paisaje, detectar transacciones atípicas con tarjeta o reducir cientos de variables a unas pocas con PCA.
+- **Aprendizaje por refuerzo**: un agente prueba acciones y aprende de las recompensas que recibe. Ejemplos: AlphaGo aprendiendo a jugar Go, un robot aprendiendo a caminar, o un sistema que ajusta semáforos para minimizar el tráfico.
 
 ### 1.3 Otros tipos de modelos
 
