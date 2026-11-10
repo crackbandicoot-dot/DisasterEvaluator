@@ -62,7 +62,12 @@ Parece suficiente, pero **engaña cuando las clases están desbalanceadas**. Si 
 - **Falso positivo**: el modelo dice que sí, pero era no.
 - **Falso negativo**: el modelo dice que no, pero era sí.
 
-Cuál duele más depende del contexto. En conducción autónoma, un peatón que el modelo no detecta es un falso negativo, y es el error peligroso. En un filtro de spam, en cambio, el error costoso es un falso positivo: perder un correo importante.
+Para verlo con el mecanismo de cada caso, conviene fijarse en qué significa "sí" en el problema:
+
+- **Conducción autónoma.** El modelo recibe una imagen de la calle y debe decidir "hay un peatón" (sí) o "no hay un peatón" (no). Si hay un peatón delante y el modelo responde "no hay peatón", dijo que no cuando era sí: es un **falso negativo**. El auto no frena y atropella al peatón. Ese es el error peligroso, porque el costo de no detectarlo es un accidente.
+- **Filtro de spam.** El modelo debe decidir "es spam" (sí) o "no es spam" (no). Si un correo legítimo de trabajo se marca como spam, el modelo dijo que sí cuando era no: es un **falso positivo**. El correo importante se pierde en la carpeta de spam, y ese es el error costoso; en cambio, dejar pasar un spam (falso negativo) solo molesta.
+
+Cuál duele más depende del contexto y de qué significa "sí" en cada problema: en conducción autónoma el error caro es no detectar al peatón (falso negativo), en un filtro de spam es marcar un correo bueno (falso positivo).
 
 #### Precisión, recall y F1
 
