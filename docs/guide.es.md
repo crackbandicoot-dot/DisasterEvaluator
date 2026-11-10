@@ -71,15 +71,31 @@ Cuál duele más depende del contexto y de qué significa "sí" en cada problema
 
 #### Precisión, recall y F1
 
-- **Precisión**: cuando el modelo dice que sí, ¿cuántas veces acierta?
-- **Recall**: de todos los casos reales, ¿cuántos logró encontrar?
-- **F1**: un promedio de los dos, para tener un solo número.
+Accuracy falla con clases desbalanceadas porque cuenta todos los aciertos por igual, y el fondo se come la cuenta. Precisión, recall y F1 miran **solo la clase que nos interesa** (la "positiva"), que en nuestro caso es "este píxel tiene daño", y por eso no se dejan engañar por el fondo. Usamos las mismas nociones de arriba: $VP$ verdaderos positivos, $FP$ falsos positivos y $FN$ falsos negativos.
 
-Con $VP$ verdaderos positivos, $FP$ falsos positivos y $FN$ falsos negativos:
+##### Precisión
 
-$$\text{precisión} = \frac{VP}{VP + FP} \qquad \text{recall} = \frac{VP}{VP + FN}$$
+De todas las veces que el modelo dijo "sí", ¿cuántas acertó?
+
+$$\text{precisión} = \frac{VP}{VP + FP}$$
+
+Es útil porque **castiga los falsos positivos**: cada vez que el modelo grita "daño" sin que lo haya, la precisión baja. En nuestro proyecto, una precisión baja significa que marcamos como dañados edificios que están bien, y los equipos de rescate pierden tiempo yendo a revisar falsas alarmas. Se usa cuando queremos que, cada vez que el sistema avise, sea confiable.
+
+##### Recall
+
+De todos los casos que de verdad eran "sí", ¿cuántos encontró el modelo?
+
+$$\text{recall} = \frac{VP}{VP + FN}$$
+
+Es útil porque **castiga los falsos negativos**: cada daño real que el modelo deja pasar sin marcar, el recall baja. En nuestro proyecto, un recall bajo significa que hay edificios destruidos que el mapa no muestra, y las personas que necesitan ayuda no son enviadas. Se usa cuando lo que más importa es no dejar pasar nada.
+
+##### F1
+
+Precisión y recall tiran en direcciones opuestas: si bajamos el umbral para no perder daños, sube el recall pero baja la precisión (marcamos de más), y si lo subimos, sube la precisión pero baja el recall (se nos escapan casos). F1 combina las dos en un solo número:
 
 $$F_1 = \frac{2 \cdot \text{precisión} \cdot \text{recall}}{\text{precisión} + \text{recall}}$$
+
+Es útil cuando hay que resumir el balance en una sola cifra y no se quiere elegir entre precisión y recall. Usa la **media armónica** (no la aritmética) a propósito: si una de las dos es baja, F1 se hunde aunque la otra sea perfecta. Así obliga a que ambas sean razonables, y no se puede "hacer trampa" mejorando solo una.
 
 ### 1.7 Overfitting
 
