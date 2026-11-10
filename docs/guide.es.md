@@ -147,14 +147,6 @@ def k_fold_cross_validation(full_dataset, k, model_builder):
     return average_score, variance_score
 ```
 
-### 1.9 El teorema de no free lunch
-
-Este teorema dice que, **sin suponer nada sobre el problema, ningún algoritmo de aprendizaje es mejor que otro**. No es un resultado estadístico: es un argumento lógico.
-
-La idea: sea un problema con muchas entradas posibles, y sean los datos de entrenamiento los que cubren solo algunas de ellas. Para las entradas que el modelo no vio, los datos no dicen nada, así que **cualquier respuesta es compatible con lo que sabemos**. Entonces, para cualquier modelo que elijamos, existe una función verdadera que coincide con todos los datos de entrenamiento y que difiere de lo que el modelo responde en todo lo que no vio. Ahí el modelo falla por completo. Y si cambiamos de modelo, existe otra función construida contra el nuevo.
-
-Esto **no** significa que no podamos tener nada general. Significa que todo modelo parte de una suposición sobre el problema, llamada **sesgo inductivo**, y funciona bien cuando esa suposición se parece al problema real. Los problemas reales sí tienen estructura: las imágenes tienen vecindad, el texto tiene orden. Por ejemplo, la U-Net que usaremos asume que los píxeles cercanos están relacionados, y por eso sirve para imágenes. La consecuencia práctica: no hay un modelo mejor en general, hay que elegir el modelo cuyas suposiciones encajan con el problema, y comparar contra una línea base simple.
-
 ## 2. Redes neuronales
 
 Una red neuronal es **una composición de funciones**. Nada más. No necesitamos analogías biológicas: lo que ocurre realmente es que componemos funciones, y la razón de componerlas es que, si no lo hiciéramos, habría decisiones que no podríamos tomar.
