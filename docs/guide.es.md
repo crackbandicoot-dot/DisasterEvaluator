@@ -105,9 +105,47 @@ Lo que más ayuda es **variedad en los datos**. Si todos los ejemplos se parecen
 
 ### 1.8 Validación cruzada (K-fold)
 
-Sirve para comparar modelos o hiperparámetros sin depender de una sola partición de los datos. Se parte el dataset de $N$ ejemplos en $K$ pedazos de tamaño $N/K$ y se hacen $K$ rondas: en cada una, un pedazo distinto hace de validación y los otros $K-1$ de entrenamiento. Al final se **promedia la métrica** de las $K$ rondas, y la **varianza** entre rondas dice qué tan estable es el modelo.
+La **validación cruzada K-Fold** es un método de remuestreo en aprendizaje automático para estimar qué tan bien generaliza un modelo, es usado para seleccionar un modelo o hiperparámetros para un modelo. El conjunto de datos se divide en **k** pliegues (*folds*) que no se solapan. El modelo se entrena **k** veces: en cada ocasión, un pliegue se reserva para validación y los otros **k-1** pliegues se usan para entrenamiento. Cada punto de datos se usa para validación exactamente una vez.
 
-El costo es que se entrena $K$ veces, así que con redes grandes casi no se usa y basta con un conjunto de validación fijo.
+Los **k** puntajes de validación se resumen, normalmente con su **promedio**:
+
+$$ \bar{x} = \frac{1}{k}\sum_{i=1}^{k} x_i $$
+
+y su **varianza**
+
+$$
+s^2 = \frac{1}{k-1}\sum_{i=1}^{k}\left(x_i-\bar{x}\right)^2
+$$
+
+para estimar el rendimiento esperado y la estabilidad del modelo.
+
+```python
+
+def k_fold_cross_validation(full_dataset, k, model_builder):
+
+    # Randomly partition the dataset into k non-overlapping folds.
+    folds = split_dataset_into_k_non_overlapping_folds(full_dataset, k)
+
+    validation_scores = empty_collection()
+
+    for validation_fold in folds:
+        # Build the training set from every fold except validation_fold.
+        training_set = combine_all_folds_except(folds, validation_fold)
+
+        # Train a fresh model using only the training set.
+        model = build_and_train_model(model_builder, training_set)
+
+        # Evaluate the trained model on the held-out validation fold.
+        score = evaluate_model(model, validation_fold)
+
+        # Record this fold's validation score.
+        record_score(validation_scores, score)
+
+    average_score = average_of(validation_scores)
+    variance_score = variance_of(validation_scores)
+
+    return average_score, variance_score
+```
 
 ### 1.9 El teorema de no free lunch
 
