@@ -1,8 +1,10 @@
-# Machine Learning y redes neuronales: guía para el equipo
+# Machine Learning y redes neuronales
 
-Esta guía explica lo básico de machine learning y cómo funciona una red neuronal, sin relleno. Al final aterriza en nuestro proyecto: estimar el daño de edificios a partir de imágenes satelitales de antes y después de un desastre.
+Esta guía explica lo básico de machine learning y cómo funciona una red neuronal.
 
-## 1. Introducción y cultura general
+---
+
+## 1. Conceptos
 
 ### 1.1 Qué es machine learning
 
@@ -26,7 +28,7 @@ Existen muchos modelos además de las redes neuronales. Dos ejemplos clásicos:
 - **KNN (k vecinos más cercanos)**: no entrena nada. Para clasificar un punto nuevo, busca los $k$ ejemplos más cercanos y vota por la clase mayoritaria.
 - **Árbol de decisión**: hace preguntas de sí o no sobre las características de los datos. En cada paso elige la pregunta que mejor separa las clases y repite el proceso dentro de cada rama.
 
-Nosotros nos enfocamos en redes neuronales porque es lo que usa el proyecto y porque es lo que domina el campo hoy. Quien necesite modelos clásicos en el futuro sabe por dónde entrar.
+Nosotros nos enfocamos en redes neuronales porque es lo que usa el proyecto y porque es lo que domina el campo hoy.
 
 ### 1.4 Tensores
 
@@ -38,8 +40,6 @@ Para nosotros, un tensor es simplemente un **array de arrays de varias dimension
 - **TensorFlow**: framework de Google para deep learning.
 - **Keras**: interfaz de alto nivel construida sobre TensorFlow, pensada para escribir redes con poco código.
 - **scikit-learn** (`sklearn`): pensado para modelos clásicos como KNN, árboles de decisión o regresiones. También trae herramientas de validación y métricas. Las redes neuronales no son su fuerte.
-
-Todos nos dan lo mismo en lo esencial: tensores, capas ya implementadas y el cálculo automático del gradiente.
 
 ### 1.6 Cómo medimos qué tan bueno es un modelo
 
@@ -147,11 +147,21 @@ def k_fold_cross_validation(full_dataset, k, model_builder):
     return average_score, variance_score
 ```
 
+---
+
 ## 2. Redes neuronales
 
-Una red neuronal es **una composición de funciones**. Nada más. No necesitamos analogías biológicas: lo que ocurre realmente es que componemos funciones, y la razón de componerlas es que, si no lo hiciéramos, habría decisiones que no podríamos tomar.
+Una red neuronal es en el sentido matemático **una composición de funciones**.
 
-La mejor forma de entenderlo es seguir la historia de por qué cada pieza apareció.
+$$ F(x)=f_L\circ f_{L-1}\circ\cdots\circ f_1(x)$$
+
+se suele llamar capas a estas funciones,cada capa suele tener esta forma
+
+$$\qquad f_\ell(x)=g_\ell(W_\ell x+b_\ell)$$
+
+>**Nota**:digo 'suele' porque hay varios tipos de redes neuronales,este ejemplo específico es de una red **feedforward**.
+
+La razón de componerlas es que, si no lo hiciéramos, habría decisiones que no podríamos tomar.La mejor forma de entenderlo es seguir la historia de por qué cada pieza apareció.
 
 ### 2.1 Una neurona
 
@@ -163,13 +173,37 @@ Aquí $w$ (el peso) y $b$ (el sesgo) son los parámetros. El algoritmo de aprend
 
 ### 2.2 El límite de una sola neurona
 
-Una neurona solo puede representar funciones lineales. Hay problemas tan simples como el **XOR** que ninguna función lineal puede resolver: la salida es 1 cuando las dos entradas son distintas y 0 cuando son iguales, y no existe una recta que separe esos casos.
+Empecemos por una función muy simple que **no** es afín: el valor absoluto.
 
-Primer límite encontrado. La solución natural: usar más de una neurona y componerlas.
+$$
+f(x)=|x|.
+$$
+
+> Nota: Las funciones afines son las que tienen la forma $y= Wx+B$, la $B$ es lo que la diferencia de una lineal
+
+Una sola neurona afín tiene la forma
+
+$$
+\hat f(x)=wx+b.
+$$
+
+Supongamos que existen $w$ y $b$ tales que $\hat f(x)=|x|$ para todo $x$. Evaluando en $x=1$ y en $x=-1$:
+
+$$
+w+b=1,\qquad -w+b=1.
+$$
+
+Sumando ambas ecuaciones: $2b=2$, luego $b=1$. Restándolas: $2w=0$, luego $w=0$. Pero entonces
+
+$$
+\hat f(0)=w\cdot 0+b=1\ne |0|=0.
+$$
+
+Contradicción. Por tanto, **no existen $w$ y $b$** que representen $|x|$ con una sola neurona afín.
 
 ### 2.3 Componer capas, y por qué hace falta la función de activación
 
-Si componemos dos funciones lineales, el resultado sigue siendo una función lineal:
+Si componemos dos funciones afines , el resultado sigue siendo una función afín:
 
 $$w_2 (w_1 x + b_1) + b_2 = (w_2 w_1)\,x + (w_2 b_1 + b_2)$$
 
@@ -183,25 +217,179 @@ $$f(x) = W_2 \, \sigma(W_1 x + b_1) + b_2$$
 
 Con esto la red puede representar funciones que una sola neurona no puede, como el XOR. Y añadiendo más capas, funciones cada vez más complejas. Esa es la red neuronal clásica, la del perceptrón multicapa.
 
-> **Aviso de transparencia:** esta forma clásica depende mucho del dominio y casi nadie la usa tal cual hoy. Se enseña porque con ella se entiende la idea. Para imágenes, por ejemplo, se usan otras arquitecturas, como veremos al final.
+> **Nota:** esta forma clásica depende mucho del dominio y casi nadie la usa tal cual hoy. Se enseña porque con ella se entiende la idea. Para imágenes, por ejemplo, se usan otras arquitecturas, como veremos al final.
+
+---
 
 ## 3. Cómo se entrena una red
 
-Ya sabemos la forma del modelo. Falta saber cómo encontrar buenos parámetros.
+Ya sabemos la forma del modelo: una función $f$ que, dado un ejemplo $x$, produce una predicción
 
-### 3.1 La función de pérdida
+$$
+\hat{y}=f(x;\theta),
+$$
 
-Queremos que el modelo se equivoque lo menos posible. Para medirlo definimos una **función de pérdida** $L$: un número que es pequeño cuando el modelo acierta y grande cuando se equivoca.
+donde $\theta$ son los pesos o parámetros del modelo.
 
-La pérdida depende del dominio. Algunos ejemplos:
+Falta saber cómo encontrar buenos valores de $\theta$.
 
-- **Predecir un número** (precio de una casa): el error cuadrático medio, $L = \frac{1}{n}\sum_i (y_i - \hat{y}_i)^2$. Penaliza mucho los errores grandes.
-- **Clasificar en categorías** (¿qué nivel de daño tiene este edificio?): la entropía cruzada, que castiga fuerte al modelo cuando está seguro de una respuesta equivocada.
-- **Clases muy desbalanceadas** (casi todo es fondo): se combina con pérdidas como Dice, o se ponen pesos por clase, para que acertar la clase rara importe.
+### 3.1 Los parámetros como un vector
 
-Entrenar es entonces **minimizar la pérdida**, que es un problema de optimización.
+Aunque una red tenga muchas matrices de pesos y muchos vectores de sesgo (*bias*), conviene pensar en **todos** sus parámetros como un único vector.
 
-### 3.2 Descenso por gradiente
+Si la red tiene $L$ capas con matrices
+
+$$
+W_1,\dots,W_L
+$$
+
+y sesgos
+
+$$
+b_1,\dots,b_L,
+$$
+
+definimos
+
+$$
+\begin{aligned}
+\theta
+=
+\big(
+&\mathrm{vec}(W_1),\, b_1,\\
+&\mathrm{vec}(W_2),\, b_2,\\
+&\dots,\\
+&\mathrm{vec}(W_L),\, b_L
+\big)
+\in \mathbb{R}^{p},
+\end{aligned}
+$$
+
+donde $\mathrm{vec}(W)$ significa **apilar las columnas** de $W$ una debajo de otra.
+
+Es decir, $\theta$ es simplemente la concatenación de:
+
+- las columnas de cada matriz de pesos $W_\ell$, y
+- cada vector de sesgo $b_\ell$.
+
+Todo eso, junto, forma un vector de dimensión $p$, el número total de parámetros de la red.
+
+Así, aunque $f$ sea una función complicada (convoluciones, activaciones, *pooling*, etc.), el modelo queda completamente determinado por un vector
+
+$$
+\theta \in \mathbb{R}^p.
+$$
+
+Entrenar es, entonces, encontrar ese vector.
+
+### 3.2 La función de pérdida
+
+Para poder encontrar este vector necesitamos una forma de medir “qué tan mal” lo está haciendo el modelo.
+
+Esa medida es la **función de pérdida**.
+
+#### Definición general
+
+Sea
+
+$$
+D=\{(x_i,y_i)\}_{i=1}^n
+$$
+
+el dataset de entrenamiento.
+
+La función de pérdida es una función de los pesos del modelo:
+
+$$
+L(\theta;D)
+=
+\frac{1}{n}
+\sum_{i=1}^n
+\ell\big(y_i, f(x_i;\theta)\big),
+$$
+
+donde $\ell$ es la pérdida de un solo ejemplo.
+
+Aquí conviene distinguir dos piezas:
+
+- $D=\{(x_i,y_i)\}$ es el **dataset**.
+  - Durante el entrenamiento lo tratamos como **constante**.
+
+- $\theta \in \mathbb{R}^p$ es el **vector de pesos del modelo**.
+  - Son las **variables** que queremos ajustar.
+  - La pérdida cambia cuando cambia $\theta$.
+
+- $L(\theta;D)$ es entonces una función que, para un dataset fijo, nos dice cuánto se equivoca el modelo con unos pesos $\theta$.
+
+Entrenar es entonces **minimizar la pérdida con respecto a los pesos**:
+
+$$
+\theta^\star
+=
+\arg\min_{\theta \in \mathbb{R}^p}
+L(\theta;D).
+$$
+
+Es decir, buscamos el vector $\theta$ que hace que el modelo se equivoque lo menos posible sobre el dataset de entrenamiento.
+
+La forma concreta de $\ell$ depende del tipo de problema.
+
+#### 3.2.1 Predecir un número
+
+Se usa el error cuadrático medio:
+
+$$
+\ell(y,\hat{y})=(y-\hat{y})^2.
+$$
+
+Entonces,
+
+$$
+L(\theta;D)
+=
+\frac{1}{n}
+\sum_{i=1}^n
+\big(y_i-\hat{y}_i\big)^2,
+$$
+
+donde
+
+$$
+\hat{y}_i=f(x_i;\theta).
+$$
+
+Penaliza mucho los errores grandes.
+
+#### 3.2.2 Segmentación donde casi todo es fondo
+
+Aquí destaca la **pérdida Dice**.
+
+Si $A$ es el conjunto de píxeles predichos como  especiales y $B$ el conjunto real de estos píxeles, se define
+
+$$
+\mathrm{Dice}(A,B)
+=
+\frac{2\,|A\cap B|}{|A|+|B|},
+$$
+
+y
+
+$$
+\ell_{\text{Dice}}
+=
+1-\mathrm{Dice}(A,B).
+$$
+
+La función mide directamente el solapamiento entre predicción y verdad, normalizado por el tamaño de ambos conjuntos.
+
+Si el conjunto ocupa poquísimos píxeles, el fondo (que es enorme) no domina la pérdida:
+
+- el denominador $|A|+|B|$ incluye solo la región de interés,
+- no todos los píxeles.
+
+Por eso se usa mucho en segmentación médica, de edificios dañados, etc.
+
+### 3.3 Descenso por gradiente
 
 El gradiente de la pérdida apunta hacia donde la pérdida **sube** más rápido. Así que para bajarla nos movemos en sentido contrario:
 
@@ -211,78 +399,91 @@ Donde $\theta$ son todos los parámetros y $\eta$ es la **tasa de aprendizaje** 
 
 El gradiente cero es una condición necesaria de mínimo, no suficiente: también lo cumplen los máximos y los **puntos silla**. En redes neuronales la pérdida no es convexa, así que en general solo podemos esperar llegar a un punto donde el gradiente sea cero.
 
-### 3.3 Descenso por gradiente estocástico y batches
+### 3.4 Descenso por gradiente estocástico por mini-lotes (batches)
 
-Calcular el gradiente sobre todo el dataset en cada paso es caro. En la práctica partimos el dataset en pedazos, los **batches**, y en cada paso usamos uno solo. Esto crea otro hiperparámetro: el **batch size**.
+Este algoritmo es el más usado en la práctica, realiza actualizaciones de parámetros usando el gradiente promedio calculado sobre un subconjunto pequeño de los datos de entrenamiento, muestreado aleatoriamente, llamado **mini-lote** (a menudo denotado como $\mathcal{B}_t$ de tamaño $b$). El tamaño de este mini-lote normalmente varía de 2 a unos pocos cientos, aunque puede ser mayor, a menudo limitado por la memoria de la GPU.
 
-¿Por qué funciona? El gradiente de la pérdida completa es el promedio de los gradientes de cada ejemplo. Un batch aleatorio da una pista **ruidosa** de esa dirección, pero mucho más barata de calcular, así que podemos dar muchos más pasos en el mismo tiempo. Un batch individual puede no ser representativo (si una clase es rara, casi nunca aparecerá en un batch pequeño), pero **muchos pasos con batches distintos, sumados, se parecen a pasos exactos**.
+La regla de actualización en la iteración $t$ es:
 
-Dos matices importantes:
+$$
+\theta_{t+1} \leftarrow \theta_t - \eta_t \cdot \frac{1}{|\mathcal{B}_t|} \sum_{i \in \mathcal{B}_t} \nabla \ell_i(\theta_t)
+$$
 
-- **La tasa de aprendizaje.** Con gradientes ruidosos, una tasa constante hace que el modelo rebote alrededor del mínimo sin asentarse. La teoría pide que $\eta$ vaya disminuyendo. En la práctica se usa constante o con un *scheduler* que la va bajando.
-- **El batch size no tiene un valor mágico.** Un batch pequeño no rompe la convergencia, solo hace el camino más ruidoso. Se elige probando, equilibrando ruido, velocidad y memoria.
+donde $\eta_t$ es la tasa de aprendizaje (o tamaño de paso) en la iteración $t$, y $\nabla \ell_i(\theta_t)$ es el gradiente de la pérdida para un único punto de datos $i$ evaluado en $\theta_t$.
 
-### 3.4 Cuándo parar
+La idea es que el gradiente del mini-lote sirve como una **estimación insesgada** del gradiente de lote completo, es decir, $\mathbb{E}[\nabla L_{\mathcal{B}_t}(\theta_t)] = \nabla L(\theta_t)$. Esto significa que, *en promedio*, la actualización apunta en la dirección del gradiente verdadero, lo que permite la convergencia mientras es mucho más eficiente por iteración que el GD de lote completo.
 
-Con batches el gradiente siempre es ruidoso, así que mirar si su norma es cercana a cero no sirve bien. En la práctica se para cuando la pérdida **deja de mejorar en el conjunto de validación**.
+> *Nota*: en el entrenamiento estándar basado en épocas (una época  significa recorrer una vez todo el conjunto de entrenamiento), los mini-lotes **no** se reutilizan como los mismos grupos fijos. En cada época, el conjunto de entrenamiento se vuelve a mezclar y se reparte en nuevos mini-lotes $\mathcal{B}_1, \dots, \mathcal{B}_K$, donde $K \approx \lceil N/b \rceil$ para un conjunto de datos de tamaño $N$ y tamaño de lote $b$. Así, los ejemplos se reutilizan en cada época, pero su agrupación en lotes cambia. Si **no** se mezclan, entonces efectivamente se rota por los mismos lotes fijos en cada época; los gradientes de lotes individuales entonces no son estimaciones insesgadas del gradiente completo, aunque el promedio durante una época completa es igual al gradiente completo. Algunas implementaciones, en cambio, muestrean un mini-lote aleatorio nuevo **con reemplazo** en cada paso, por lo que no hay ninguna lista fija de lotes. En la notación anterior, $\mathcal{B}_t$ es, por lo tanto, generalmente un subconjunto aleatorio nuevo en cada iteración, no un lote fijo que simplemente cicla.
 
-### 3.5 Backpropagation
+### 3.5 Cuándo parar
 
-Para dar cada paso necesitamos el gradiente de la pérdida respecto a todos los parámetros. Como la red es una composición de funciones, la derivada se expande con la regla de la cadena en una expresión enorme donde muchas subpartes se repiten.
+Con mini-lotes, el gradiente que usamos en cada iteración es ruidoso:
 
-Esas dependencias forman un **grafo dirigido acíclico (DAG)**. Recorriéndolo en orden topológico y guardando los resultados intermedios (programación dinámica), cada subparte se calcula una sola vez. Eso es **backpropagation**. No vamos a deducir las fórmulas: todos los frameworks lo hacen por nosotros, y la idea alcanza para entender qué ocurre.
+$$
+\nabla L_{\mathcal{B}_t}(\theta_t)
+=
+\frac{1}{|\mathcal{B}_t|}
+\sum_{i\in \mathcal{B}_t}
+\nabla \ell_i(\theta_t),
+$$
+
+y aunque estemos cerca de un mínimo, su norma puede seguir siendo grande. Por eso **no** conviene parar mirando si $\|\nabla L_{\mathcal{B}_t}(\theta_t)\|$ es cercana a cero.
+
+En la práctica se usa un **conjunto de validación** distinto del de entrenamiento. Sea
+
+$$
+D_{\text{val}}=\{(x_i^{\text{val}},y_i^{\text{val}})\}_{i=1}^{n_{\text{val}}}
+$$
+
+un conjunto disjunto de $D$. Definimos su pérdida como
+
+$$
+L_{\text{val}}(\theta;D_{\text{val}})
+=
+\frac{1}{n_{\text{val}}}
+\sum_{i=1}^{n_{\text{val}}}
+\ell\big(y_i^{\text{val}}, f(x_i^{\text{val}};\theta)\big).
+$$
+
+Esta pérdida **no se usa para actualizar** $\theta$; solo se usa para decidir cuándo parar y qué pesos conservar.
+
+Al final de cada época $e$, calculamos $L_{\text{val}}(\theta_e)$, donde $\theta_e$ son los pesos después de recorrer una vez el conjunto de entrenamiento $D$. La idea de “deja de mejorar” se formaliza así:
+
+- Se eligen una **paciencia** $P\in\mathbb{N}$ y una **mejora mínima** $\delta\ge 0$.
+- Se guarda el mejor valor de validación visto hasta ahora, $L_{\text{val}}^{\text{best}}$, y los pesos correspondientes $\theta^\star$.
+- Después de cada época:
+  - si $L_{\text{val}}(\theta_e) < L_{\text{val}}^{\text{best}}-\delta$, hay mejora significativa: actualizamos $L_{\text{val}}^{\text{best}}$ y $\theta^\star$, y reiniciamos el contador;
+  - si no, aumentamos el contador de épocas sin mejora.
+- Se para cuando el contador llega a $P$, o cuando se alcanza un número máximo de épocas.
+
+Es decir, **“deja de mejorar” significa que durante $P$ épocas consecutivas la pérdida de validación no ha bajado al menos $\delta$ respecto del mejor valor anterior**. Al final se devuelven los mejores pesos $\theta^\star$, no necesariamente los últimos.
+
+Si $\delta=0$, cualquier mejora estricta cuenta. La paciencia $P$ permite tolerar el ruido de los mini-lotes y no parar por una fluctuación pequeña. Además, conviene fijar un máximo de épocas para evitar entrenamientos infinitos.
+
+### 3.6 Backpropagation
+
+Para dar cada paso necesitamos el gradiente de la pérdida respecto a todos los parámetros, $\nabla L(\theta;D)$,los frameworks se encargan de esto por nosotros pero es bueno saber a alto nivel la idea que usan. La red es una composición de operaciones: entradas, pesos, sesgos, preactivaciones, activaciones, predicción y pérdida. Cada una de esas cantidades se puede pensar como un **nodo** de un grafo, y ponemos una arista $a\to b$ si $b$ se calcula usando $a$.
+
+Por ejemplo, en una red simple:
+
+$$
+x,W_1 \longrightarrow z_1=W_1x+b_1
+\longrightarrow h_1=\sigma(z_1)
+\longrightarrow z_2=W_2h_1+b_2
+\longrightarrow \hat{y}
+\longrightarrow \ell(y,\hat{y}).
+$$
+
+> **Nota**: ayuda ver este ejemplo de derecha a izquierda al principio, y después de izquierda a derecha
+
+Todas las flechas van desde algo que se usa para calcular otra cosa hacia su resultado. Nunca se vuelve a un nodo anterior. Por eso el grafo es **dirigido acíclico**: un **DAG**. Si hubiera un ciclo, una variable dependería de sí misma y no podríamos ordenar el cálculo hacia adelante ni hacia atrás de forma limpia.
+
+La pérdida $L$ es una composición de funciones a lo largo de los caminos que van desde $\theta$ hasta $\ell$. Para saber cuánto afecta un nodo a la pérdida hay que multiplicar derivadas locales a lo largo de esos caminos: esa es la regla de la cadena. Si lo hiciéramos ingenuamente, muchas subexpresiones se repetirían.
+
+**Backpropagation** recorre el DAG en orden inverso: empieza en la pérdida y va propagando hacia atrás “cuánto cambia $L$ si cambia cada nodo”. En cada nodo reutiliza los valores ya calculados de sus consumidores y las derivadas locales, y guarda los resultados intermedios del forward pass. Así, cada subparte se calcula una sola vez: eso es programación dinámica sobre el DAG.
+
+---
 
 ## 4. Fine tuning
 
-Normalmente una red empieza con pesos aleatorios. En el **fine tuning** empezamos con los pesos de un modelo ya entrenado en otra tarea y nos movemos desde ahí. El modelo ya aprendió representaciones útiles, así que el entrenamiento suele ser más rápido y necesita menos datos. Típicamente se usa una tasa de aprendizaje más pequeña para no destruir lo que ya sabía.
-
-## 5. Nuestro proyecto
-
-### 5.1 El problema
-
-La entrada son dos imágenes satelitales de la misma zona: una **antes** y otra **después** de un desastre. La salida es, para cada píxel, el nivel de daño del edificio que hay ahí. Usamos el dataset **xView2 (xBD)**.
-
-Los datos originales traen polígonos que representan edificios con su nivel de daño. Los convertimos a una **máscara**: una matriz del tamaño de la imagen donde cada posición vale una categoría de 0 a 4 (0 es fondo, sin edificio, y 1 a 4 son los niveles de daño).
-
-### 5.2 La salida de la red
-
-La salida de nuestra red es un tensor de cuatro dimensiones:
-
-1. Índice de la imagen dentro del batch.
-2. Categoría (5 en total).
-3. Fila del píxel.
-4. Columna del píxel.
-
-Cada valor es la probabilidad, entre 0 y 1, de que ese píxel pertenezca a esa categoría. Para la respuesta final nos quedamos con la categoría de mayor probabilidad en cada píxel, y eso nos devuelve la matriz de daños.
-
-Para entrenar, la máscara de etiquetas se compara con las probabilidades usando entropía cruzada, que internamente hace la codificación *one-hot* (un 1 en la categoría correcta y 0 en las demás). No hace falta convertirla nosotros.
-
-### 5.3 Red siamesa con estructura encoder-decoder
-
-Usamos una **red siamesa** con estructura tipo **U-Net**. La idea clave: las dos imágenes entran como entradas separadas y pasan por el mismo encoder (con los mismos pesos), en vez de concatenarse al principio.
-
-- **Encoder**: una composición de capas que reduce el tamaño espacial de la imagen y aumenta la cantidad de canales por posición. En vez de 3 valores por píxel (RGB), podemos tener 64. Intuitivamente, agrupa píxeles cercanos y extrae características de ese grupo.
-- **Combinación**: las características de la imagen de antes y de la de después se combinan con una función. Una resta es la intuición más fácil: si una característica como la altura de un edificio pasa de un valor alto a cero, el edificio se cayó. En la práctica la combinación es más flexible que una resta.
-- **Decoder**: otra composición de capas que vuelve a expandir hasta el tamaño original y produce la clasificación de daño por píxel. En un U-Net el decoder también recibe atajos del encoder, para recuperar detalle fino.
-
-El entrenamiento no cambia nada de lo visto antes. Encoder, decoder y la función que los une son todos composición de funciones, así que lo único que hacemos es calcular el gradiente de la pérdida y aplicar descenso por gradiente con batches.
-
-En el dataset xView2, un enfoque habitual tiene dos etapas: primero localizar los edificios, y luego clasificar su nivel de daño. Como la mayoría de los píxeles son fondo, el desbalance de clases es un problema real, y por eso se suele combinar la entropía cruzada con otras pérdidas o con pesos por clase.
-
-### 5.4 Plan de implementación
-
-- Versión preliminar local, con imágenes reducidas a 256 por 256 píxeles, para probar todo el pipeline.
-- El código debe leerse como esta explicación: sin trucos específicos del lenguaje, de modo que se vean directamente el encoder, el decoder, la pérdida y el descenso por gradiente.
-- Cada etapa es un **script independiente** que recibe sus entradas por la entrada estándar, con flags para elegir cuántos archivos usar. Los resultados se guardan en una carpeta del repositorio y, si algo ya se hizo, no se repite.
-- Más adelante, si todo funciona, se pueden unir las etapas importando sus funciones desde un único script.
-- Usaremos fine tuning a partir de pesos ya entrenados.
-
-## 6. Resumen de ideas clave
-
-- Machine learning es buscar una función con un algoritmo, no escribirla a mano.
-- Ningún algoritmo es mejor que otro sin suponer algo del problema (no free lunch): hay que elegir el modelo cuyas suposiciones encajan.
-- Se evalúa con datos que el modelo no vio, y la accuracy sola puede engañar.
-- Una red neuronal es una composición de funciones; la activación no lineal evita que se colapse en una sola función lineal.
-- Entrenar es minimizar una pérdida que depende del dominio, con descenso por gradiente sobre batches.
-- Backpropagation es calcular ese gradiente reutilizando subresultados.
-- Nuestro modelo es una red siamesa tipo U-Net: un encoder que extrae características de cada imagen, una combinación de antes y después, y un decoder que produce el daño por píxel.
+Normalmente una red empieza con pesos aleatorios. En el **full fine tuning** empezamos con los pesos de un modelo ya entrenado en otra tarea y nos movemos desde ahí. El modelo ya aprendió representaciones útiles, así que el entrenamiento suele ser más rápido y necesita menos datos. Típicamente se usa una tasa de aprendizaje más pequeña para no destruir lo que ya sabía.
