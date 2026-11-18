@@ -1,4 +1,4 @@
-#Plan de implementación
+# Plan de implementación
 
 Está diseñado para que 5 personas trabajen en paralelo sin bloquearse, con pruebas independientes (Mocks), estructuras flexibles y reglas claras de integración.
 
