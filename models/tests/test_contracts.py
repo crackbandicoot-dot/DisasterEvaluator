@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from models.model.contracts import validate_images, validate_training_batch
 
 
